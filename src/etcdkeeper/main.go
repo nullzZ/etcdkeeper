@@ -31,7 +31,7 @@ var (
 	cacert         = flag.String("cacert", "", "verify certificates of TLS-enabled secure servers using this CA bundle (v3)")
 	cert           = flag.String("cert", "", "identify secure client using this TLS certificate file (v3)")
 	keyfile        = flag.String("key", "", "identify secure client using this TLS key file (v3)")
-	useAuth        = flag.Bool("auth", false, "use auth")
+	useAuth        = flag.Bool("auth", true, "use auth")
 	connectTimeout = flag.Int("timeout", 5, "ETCD client connect timeout")
 	sendMsgSize    = flag.Int("sendMsgSize", 2*1024*1024, "ETCD client max send msg size")
 	rootUsers      = make(map[string]*userInfo) // host:rootUser
@@ -96,7 +96,7 @@ func main() {
 		sessmgr.GC()
 	})
 	//log.Println(http.Dir(rootPath + "/assets"))
-
+	rootPath = "/Users/malei/goWork/etcdkeeper"
 	http.Handle("/", http.FileServer(http.Dir(rootPath+"/assets"))) // view static directory
 
 	log.Printf("listening on %s:%d\n", *host, *port)
@@ -583,11 +583,12 @@ func connect(w http.ResponseWriter, r *http.Request) {
 	passwd := r.FormValue("passwd")
 
 	if *useAuth {
-		if _, ok := rootUsers[host]; !ok && uname != "root" { // no root user
-			b, _ := json.Marshal(map[string]interface{}{"status": "root"})
-			io.WriteString(w, string(b))
-			return
-		}
+		//if _, ok := rootUsers[host]; !ok && uname != "root" { // no root user
+		//if _, ok := rootUsers[host]; !ok { // no root user
+		//	b, _ := json.Marshal(map[string]interface{}{"status": "login"})
+		//	io.WriteString(w, string(b))
+		//	return
+		//}
 		if uname == "" || passwd == "" {
 			b, _ := json.Marshal(map[string]interface{}{"status": "login"})
 			io.WriteString(w, string(b))
@@ -616,9 +617,9 @@ func connect(w http.ResponseWriter, r *http.Request) {
 	_ = sess.Set("uinfo", uinfo)
 
 	if *useAuth {
-		if uname == "root" {
-			rootUsers[host] = uinfo
-		}
+		//if uname == "root" {
+		rootUsers[host] = uinfo
+		//}
 	} else {
 		rootUsers[host] = uinfo
 	}
@@ -696,11 +697,12 @@ func get(w http.ResponseWriter, r *http.Request) {
 		cli, _ = newClient(uinfo)
 		defer cli.Close()
 
-		permissions, e := getPermissionPrefix(uinfo.host, uinfo.uname, key)
-		if e != nil {
-			io.WriteString(w, e.Error())
-			return
-		}
+		//permissions, e := getPermissionPrefix(uinfo.host, uinfo.uname, key)
+		//if e != nil {
+		//	io.WriteString(w, e.Error())
+		//	return
+		//}
+		permissions := [][]string{{"/", "p"}}
 		if r.FormValue("prefix") == "true" {
 			pnode := make(map[string]interface{})
 			pnode["key"] = key
@@ -712,9 +714,9 @@ func get(w http.ResponseWriter, r *http.Request) {
 				)
 				if p[1] != "" {
 					prefixKey := p[0]
-					if p[0] == "/" {
-						prefixKey = ""
-					}
+					//if p[0] == "/" {
+					//	prefixKey = ""
+					//}
 					resp, err = cli.Get(context.Background(), prefixKey, clientv3.WithPrefix())
 				} else {
 					resp, err = cli.Get(context.Background(), p[0])
